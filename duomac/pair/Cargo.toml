@@ -1,0 +1,10 @@
+[package]
+name = "duomac-pair"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-2.0-or-later"
+description = "Makes an iOS 27 remote pairing file for DuoMac's built-in JIT over USB"
+
+[dependencies]
+idevice = { version = "=0.1.68", default-features = false, features = ["aws-lc", "usbmuxd", "remote_pairing", "amfi", "house_arrest", "installation_proxy"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }

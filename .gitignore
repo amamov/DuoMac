@@ -1,1 +1,6 @@
 build/
+
+# DuoMac
+duomac/dist/
+duomac/vendor/
+duomac/pair/target/

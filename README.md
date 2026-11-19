@@ -1,3 +1,6 @@
+> **DuoMac** — 이 저장소는 Henge를 iPhone Duo용으로 묶은 버전이에요. 설치 가이드: **[duomac/README.md](duomac/README.md)**
+> (one-command installer for macOS: `curl -fsSL https://raw.githubusercontent.com/amamov/DuoMac/main/duomac/install.sh | zsh`)
+
 <p align="center">
   <img src="docs/icon.png" width="120" height="120" alt="Henge">
 </p>
