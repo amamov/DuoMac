@@ -45,6 +45,8 @@ enum GuestMemory {
         let free = (try? mac.directory.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]))?
             .volumeAvailableCapacityForImportantUsage ?? 0
         let room = free > 0 ? UInt64(max(free - (2 << 30), 0)) >> 20 : UInt64.max
+        // Local fix (upstream issue #221): the high-range hold is still held here, so measure after releasing it.
+        henge_ios_jit_release_high_hold()
         let reach = henge_largest_mapping_mb()
         let ram = min(UInt64(mac.ramMB), room, reach > 512 ? reach - 512 : 0) / 512 * 512
         HengeLog.log("session", "guest RAM \(ram) MB (asked \(mac.ramMB), disk room \(room), largest mapping \(reach))")

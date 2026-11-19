@@ -556,6 +556,8 @@ static void henge_ios_release_high_hold(void)
         }
 }
 
+HENGE_EXPORT void henge_ios_jit_release_high_hold(void) { henge_ios_release_high_hold(); }
+
 /* The held blocks, once, for the translation layer to place large reservations in (they stay held: those are mapped
    over them). Returns how many (0 if none). */
 HENGE_EXPORT int henge_ios_take_high_room(void **base, size_t *bytes)
@@ -999,6 +1001,7 @@ HengeDualMapping henge_ios_jit_allocate(size_t bytes)
     return henge_ios_jit_allocate_real(bytes);
 }
 int henge_ios_take_high_room(void **base, size_t *bytes) { (void)base, (void)bytes; return 0; }
+void henge_ios_jit_release_high_hold(void) {}
 bool henge_ios_jit_prewarm(size_t bytes) { (void)bytes; return false; }
 bool henge_ios_jit_prewarm_self(size_t bytes) { (void)bytes; return false; }
 bool henge_ios_jit_reserve_bottom(size_t end) { (void)end; return true; }
