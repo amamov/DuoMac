@@ -5,6 +5,7 @@
 set -euo pipefail
 
 REPO="amamov/DuoMac"
+VERSION="v0.1.0" # the release the installer fetches; bumped with each release
 PLUMESIGN_URL="https://github.com/claration/impactor/releases/download/v2.7.3/plumesign-macos-universal"
 PLUMESIGN_SHA256="24bdc78f334f7db324d0d3ae35b1fc67d69f3f8f4a354d10b9967bc3fc261a08"
 WORK="$HOME/.duomac"
@@ -20,8 +21,8 @@ ask() { local a; read -r "a?$1 [y/N] " </dev/tty; [[ "$a" == [yY]* ]]; }
 
 # 1. Tools and the app
 say "필요한 파일을 받는 중..."
-curl -fsSL -o DuoMac.ipa "https://github.com/$REPO/releases/latest/download/DuoMac.ipa"
-curl -fsSL -o duomac-pair "https://github.com/$REPO/releases/latest/download/duomac-pair"
+curl -fsSL -o DuoMac.ipa "https://github.com/$REPO/releases/download/$VERSION/DuoMac.ipa"
+curl -fsSL -o duomac-pair "https://github.com/$REPO/releases/download/$VERSION/duomac-pair"
 if [[ ! -x plumesign ]] || [[ "$(shasum -a 256 plumesign | cut -d' ' -f1)" != "$PLUMESIGN_SHA256" ]]; then
   curl -fsSL -o plumesign "$PLUMESIGN_URL"
 fi
