@@ -85,7 +85,8 @@ struct SessionView: View {
                     }
                     .position(x: layout.screen.midX, y: layout.screen.midY)
                 if state != 2 {
-                    Trackpad()
+                    Trackpad(picture: layout.screen.offsetBy(dx: -layout.touch.minX, dy: -layout.touch.minY),
+                             guest: CGSize(width: mac.screen.width, height: mac.screen.height))
                         .frame(width: layout.touch.width, height: layout.touch.height)
                         .position(x: layout.touch.midX, y: layout.touch.midY)
                     if inputMode == .volumeButtons && volumeMode == .intercept {

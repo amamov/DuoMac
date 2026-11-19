@@ -17,8 +17,17 @@ struct Trackpad: UIViewRepresentable {
     /// Four fingers tapped together: the session shows its hidden controls.
     static let revealTap = Notification.Name("henge.trackpad.revealTap")
 
+    /// Where the Mac's picture sits in this surface's own coordinates, and the Mac's screen size.
+    /// Given when the surface lies over the picture: a mouse's pointer (AssistiveTouch on iPhone)
+    /// then puts the Mac's cursor right under it. Nil for a separate pad beside the picture.
+    var picture: CGRect? = nil
+    var guest: CGSize = .zero
+
     func makeUIView(context: Context) -> Surface { Surface() }
-    func updateUIView(_ view: Surface, context: Context) {}
+    func updateUIView(_ view: Surface, context: Context) {
+        view.picture = picture
+        view.guest = guest
+    }
 
     final class Surface: UIView, UIPointerInteractionDelegate {
         /// The emulated pad's sensor, in the Magic Trackpad 2's own units.
@@ -43,11 +52,70 @@ struct Trackpad: UIViewRepresentable {
         private let buzz = UIImpactFeedbackGenerator(style: .medium)
         private var tapsClick: Bool { VolumeClicks.inputMode == .touchscreen }
 
+        /* A mouse on iPhone: iOS hands it to apps only through AssistiveTouch, as a hovering
+           pointer plus touches for its clicks. GCMouse connects but sends nothing. (DuoDesk #fd87c3e) */
+        var picture: CGRect?
+        var guest: CGSize = .zero
+        private var lastHover: CFTimeInterval = 0
+        private var mouseTouch: UITouch?
+        private var mouseButton: Int32 = 0
+        private var target: (x: Int32, y: Int32)?
+        private var chaser: CADisplayLink?
+        /// The pointer moved over the picture lately, so a touch with no radius tolerance is its click.
+        private var mouseRecent: Bool { CACurrentMediaTime() - lastHover < 120 }
+
         override init(frame: CGRect) {
             super.init(frame: frame)
             isMultipleTouchEnabled = true
             backgroundColor = .clear
             addInteraction(UIPointerInteraction(delegate: self))
+            addGestureRecognizer(UIHoverGestureRecognizer(target: self, action: #selector(hovered(_:))))
+        }
+
+        @objc private func hovered(_ g: UIHoverGestureRecognizer) {
+            // A click ends the hover with a (0,0) position: only began/changed carry a real one.
+            guard mouseTouch == nil, g.state == .began || g.state == .changed else { return }
+            lastHover = CACurrentMediaTime()
+            aim(at: g.location(in: self))
+        }
+
+        /// The guest pixel under a point of this surface, and the Mac's cursor sent there.
+        private func aim(at p: CGPoint) {
+            guard let pic = picture, pic.width > 0, pic.height > 0, guest.width > 0 else { return }
+            let x = (p.x - pic.minX) / pic.width * guest.width, y = (p.y - pic.minY) / pic.height * guest.height
+            target = (Int32(min(max(x, 0), guest.width - 1)), Int32(min(max(y, 0), guest.height - 1)))
+            if chaser == nil {
+                let link = CADisplayLink(target: self, selector: #selector(chase))
+                link.add(to: .main, forMode: .common)
+                chaser = link
+            }
+        }
+
+        /* The engine only takes relative motion and macOS accelerates it, so steer: each frame,
+           read where the cursor is and send a small step toward the target until it is there.
+           ponytail: fixed ±20 steps (autopilot's approach); a big jump takes a few frames. */
+        @objc private func chase() {
+            guard let t = target else { chaser?.invalidate(); chaser = nil; return }
+            var px: Int32 = 0, py: Int32 = 0
+            guard henge_vm_pointer(&px, &py) == 0 else { return }
+            let dx = t.x - px, dy = t.y - py
+            if abs(dx) < 2 && abs(dy) < 2 {
+                target = nil
+                return
+            }
+            henge_vm_mouse_move(max(-20, min(20, dx)), max(-20, min(20, dy)))
+        }
+
+        /// The pointer's click: a single contact with no radius tolerance (a finger always has one).
+        private func beginMouse(_ touches: Set<UITouch>, _ event: UIEvent?) -> Bool {
+            guard picture != nil, mouseTouch == nil, fingers.isEmpty, mouseRecent, touches.count == 1,
+                  let t = touches.first, t.majorRadiusTolerance == 0, (event?.allTouches?.count ?? 1) == 1 else { return false }
+            mouseTouch = t
+            let mask = event?.buttonMask ?? []
+            mouseButton = mask.contains(.secondary) && !mask.contains(.primary) ? 1 : 0
+            aim(at: t.location(in: self))
+            henge_vm_mouse_button(mouseButton, 1)
+            return true
         }
 
         /// Over the Mac there is only the Mac's pointer, if iPadOS hasn't locked its own away.
@@ -79,6 +147,7 @@ struct Trackpad: UIViewRepresentable {
         override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
             let touches = touches.filter { $0.type != .indirectPointer }
             guard !touches.isEmpty else { return }
+            if beginMouse(touches, event) { return }
             if fingers.isEmpty {
                 started = Date()
                 travelled = 0
@@ -110,6 +179,7 @@ struct Trackpad: UIViewRepresentable {
         }
 
         override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+            if let m = mouseTouch, touches.contains(m) { aim(at: m.location(in: self)) } /* a drag */
             var moved = false
             let ts = Self.ms(event?.timestamp ?? touches.first?.timestamp ?? 0)
             for t in touches where t.type != .indirectPointer {
@@ -131,6 +201,11 @@ struct Trackpad: UIViewRepresentable {
         override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) { lift(touches) }
 
         private func lift(_ touches: Set<UITouch>) {
+            if let m = mouseTouch, touches.contains(m) {
+                mouseTouch = nil
+                henge_vm_mouse_button(mouseButton, 0)
+                lastHover = CACurrentMediaTime()
+            }
             var lifted: [Int32] = []
             fingers.removeAll { finger in
                 guard touches.contains(finger.touch), finger.touch.type != .indirectPointer else { return false }

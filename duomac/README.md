@@ -1,5 +1,7 @@
 # DuoMac
 
+**Made by Sangseok Youn** · Henge(Leviidev) 기반
+
 iPhone(특히 iPhone Duo) 안에서 진짜 macOS를 돌리는 앱이에요. 원격 접속이 아니라 iPhone 안에서 macOS가 직접 돌아가요.
 [Henge](https://github.com/Leviidev/Henge)(GPL-2.0) 에뮬레이터를 바탕으로, 설치를 Mac에서 명령 한 줄로 끝낼 수 있게 묶었어요.
 
@@ -88,6 +90,10 @@ HENGE_ENTITLEMENTS=Henge/Henge.personal.entitlements HENGE_IPA_OUT=$PWD/duomac/d
 # USB 도우미
 cd duomac/pair && cargo build --release
 ```
+
+## 만든 사람
+
+Sangseok Youn ([@amamov](https://github.com/amamov)). macOS 에뮬레이터 엔진은 [Leviidev/Henge](https://github.com/Leviidev/Henge)와 그 기여자들의 작업이에요.
 
 ## 라이선스
 

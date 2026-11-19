@@ -5,7 +5,7 @@
 set -euo pipefail
 
 REPO="amamov/DuoMac"
-VERSION="v0.1.0" # the release the installer fetches; bumped with each release
+VERSION="v0.1.1" # the release the installer fetches; bumped with each release
 PLUMESIGN_URL="https://github.com/claration/impactor/releases/download/v2.7.3/plumesign-macos-universal"
 PLUMESIGN_SHA256="24bdc78f334f7db324d0d3ae35b1fc67d69f3f8f4a354d10b9967bc3fc261a08"
 WORK="$HOME/.duomac"
@@ -17,6 +17,7 @@ warn() { print -P "%F{yellow}!!%f $*"; }
 die() { print -P "%F{red}xx%f $*"; exit 1; }
 ask() { local a; read -r "a?$1 [y/N] " </dev/tty; [[ "$a" == [yY]* ]]; }
 
+print -P "%BDuoMac%b — made by Sangseok Youn (github.com/amamov/DuoMac)\n"
 [[ "$(uname)" == "Darwin" ]] || die "DuoMac의 설치 도구는 Mac에서만 동작해요."
 
 # 1. Tools and the app

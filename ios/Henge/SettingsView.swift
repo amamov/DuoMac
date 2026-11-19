@@ -145,6 +145,12 @@ struct SettingsView: View {
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 .listRowBackground(Desk.card)
+                Section("About") {
+                    Text("DuoMac — made by Sangseok Youn")
+                    Text("Built on Henge by Leviidev (GPL-2.0-or-later). Source: github.com/amamov/DuoMac")
+                        .font(.system(size: 13)).foregroundStyle(.secondary)
+                }
+                .listRowBackground(Desk.card)
                 Section("Log") {
                     ShareLink(item: HengeLog.logFileURL) { Label("Share henge.log", systemImage: "square.and.arrow.up") }
                 }
