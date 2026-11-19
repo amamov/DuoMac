@@ -158,6 +158,29 @@ enum Autopilot {
             let text = (try? String(contentsOf: out, encoding: .utf8)) ?? ""
             HengeLog.log("autopilot", "tl: \(app.name) returned \(rc) \(why)")
             for line in text.prefix(4000).split(separator: "\n").prefix(40) { HengeLog.log("tl-out", String(line)) }
+        case "jit": // local addition: turn JIT on with built-in StikJIT (needs a pairing file and LocalDevVPN), then wait for it
+            if !JITBootstrap.ready {
+                JITCoordinator.shared.method = .builtIn
+                JITCoordinator.shared.enable()
+                for _ in 0..<240 where !JITBootstrap.ready { try? await Task.sleep(nanoseconds: 500_000_000) }
+            }
+            HengeLog.log("autopilot", JITBootstrap.ready ? "jit: on" : "jit: still off (\(JITBootstrap.lastFailure ?? JITCoordinator.shared.error ?? "no reason given"))")
+        case "install": // local addition: "install 24G90 Mac 8" = release id, Mac name, RAM in GB; waits until the install ends
+            let a = arg.split(separator: " ").map(String.init)
+            guard let release = MacOSRelease.all.first(where: { $0.id == (a.first ?? "") }) else {
+                HengeLog.log("autopilot", "install wants one of \(MacOSRelease.all.map(\.id))"); return
+            }
+            guard JITBootstrap.ready else { HengeLog.log("autopilot", "install: JIT is not on"); return }
+            let name = a.count > 1 ? a[1] : "Mac", ramGB = a.count > 2 ? Int(a[2]) ?? Device.suggestedRAMGB : Device.suggestedRAMGB
+            let cpus = UserDefaults.standard.object(forKey: "henge.cpus") as? Int ?? 4
+            Installer.shared.start(release, name: name, ramMB: ramGB * 1024, cpus: cpus, keepImage: false)
+            var last = ""
+            repeat {
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                let now = "\(Installer.shared.phase)"
+                if now != last { HengeLog.log("autopilot", "install: \(now)"); last = now }
+            } while Installer.shared.busy
+            HengeLog.log("autopilot", "install ended: \(Installer.shared.phase)")
         case "log": // already in the log; the wall clock too, to line it up with things measured elsewhere
             HengeLog.log("autopilot", String(format: "at %.3f", Date().timeIntervalSince1970))
         case "stop":
